@@ -1,0 +1,58 @@
+From da9c1df85b3036c58f787ff01a01da38f036512b Mon Sep 17 00:00:00 2001
+From: zackchen <zackchen517@gmail.com>
+Date: Wed, 3 May 2017 15:21:46 +0800
+Subject: [PATCH 2/2] Fix keystone.py 'get_service_url' method parameter
+
+Calls to 'get_service_url' should use the
+'region_name' parameter. Before they were
+incorrectly using 'region' as the parameter name.
+
+Change-Id: Ic839ba6dbd5ca4dc9c7d87cf23582b8cfc393731
+Closes-Bug: #1687866
+(cherry picked from commit 21d89c0f641e9a03c47a7ffe42af2150af31016c)
+---
+ ironic/common/keystone.py                                        | 2 +-
+ ironic/tests/unit/common/test_keystone.py                        | 2 +-
+ releasenotes/notes/fix-keystone-parameters-cdb93576d7e7885b.yaml | 4 ++++
+ 3 files changed, 6 insertions(+), 2 deletions(-)
+ create mode 100644 releasenotes/notes/fix-keystone-parameters-cdb93576d7e7885b.yaml
+
+diff --git a/ironic/common/keystone.py b/ironic/common/keystone.py
+index 5a4359e98..a01cb4def 100644
+--- a/ironic/common/keystone.py
++++ b/ironic/common/keystone.py
+@@ -128,7 +128,7 @@ def get_service_url(session, service_type='baremetal',
+     """
+     return session.get_endpoint(service_type=service_type,
+                                 interface=endpoint_type,
+-                                region=CONF.keystone.region_name)
++                                region_name=CONF.keystone.region_name)
+ 
+ 
+ @ks_exceptions
+diff --git a/ironic/tests/unit/common/test_keystone.py b/ironic/tests/unit/common/test_keystone.py
+index 9705e654d..5f38c9f26 100644
+--- a/ironic/tests/unit/common/test_keystone.py
++++ b/ironic/tests/unit/common/test_keystone.py
+@@ -57,7 +57,7 @@ class KeystoneTestCase(base.TestCase):
+         mock_sess.get_endpoint.return_value = fake_url
+         res = keystone.get_service_url(mock_sess)
+         mock_sess.get_endpoint.assert_called_with(
+-            interface='internal', region='fake_region',
++            interface='internal', region_name='fake_region',
+             service_type='baremetal')
+         self.assertEqual(fake_url, res)
+ 
+diff --git a/releasenotes/notes/fix-keystone-parameters-cdb93576d7e7885b.yaml b/releasenotes/notes/fix-keystone-parameters-cdb93576d7e7885b.yaml
+new file mode 100644
+index 000000000..c6625db0d
+--- /dev/null
++++ b/releasenotes/notes/fix-keystone-parameters-cdb93576d7e7885b.yaml
+@@ -0,0 +1,4 @@
++---
++fixes:
++  - Fixes multi-region issue when region specified in config file
++    was ignored when getting keystone service url.
+-- 
+2.15.0
+

@@ -1,0 +1,57 @@
+From 2437fe4ef81ee55764930e21cc0362394822e756 Mon Sep 17 00:00:00 2001
+From: Vasyl Saienko <vsaienko@mirantis.com>
+Date: Thu, 30 Mar 2017 11:18:59 +0300
+Subject: [PATCH 1/2] Skip PortNotFound when unbinding port
+
+There might be cases when user deleted port before doing vif_detach.
+With this patch info message will be shown in the logs for such cases.
+
+Change-Id: Ic3c5073130a4839f27692db1862100bdd7dfca1e
+---
+ ironic/common/neutron.py                 |  3 +++
+ ironic/tests/unit/common/test_neutron.py | 18 ++++++++++++++++++
+ 2 files changed, 21 insertions(+)
+
+diff --git a/ironic/common/neutron.py b/ironic/common/neutron.py
+index bf4294274..a9918dcb4 100644
+--- a/ironic/common/neutron.py
++++ b/ironic/common/neutron.py
+@@ -88,6 +88,9 @@ def unbind_neutron_port(port_id, client=None):
+ 
+     try:
+         client.update_port(port_id, body)
++    # NOTE(vsaienko): Ignore if port was deleted before calling vif detach.
++    except neutron_exceptions.PortNotFoundClient:
++        LOG.info('Port %s was not found while unbinding.', port_id)
+     except neutron_exceptions.NeutronClientException as e:
+         msg = (_('Unable to clear binding profile for '
+                  'neutron port %(port_id)s. Error: '
+diff --git a/ironic/tests/unit/common/test_neutron.py b/ironic/tests/unit/common/test_neutron.py
+index 737667c51..5bba84d50 100644
+--- a/ironic/tests/unit/common/test_neutron.py
++++ b/ironic/tests/unit/common/test_neutron.py
+@@ -686,3 +686,21 @@ class TestUnbindPort(base.TestCase):
+         mock_client.assert_called_once_with()
+         mock_client.return_value.update_port.assert_called_once_with(port_id,
+                                                                      body)
++
++    @mock.patch.object(neutron, 'LOG')
++    def test_unbind_neutron_port_not_found(self, mock_log, mock_client):
++        port_id = 'fake-port-id'
++        mock_client.return_value.update_port.side_effect = (
++            neutron_client_exc.PortNotFoundClient())
++        body = {
++            'port': {
++                'binding:host_id': '',
++                'binding:profile': {}
++            }
++        }
++        neutron.unbind_neutron_port(port_id)
++        mock_client.assert_called_once_with()
++        mock_client.return_value.update_port.assert_called_once_with(port_id,
++                                                                     body)
++        mock_log.info.assert_called_once_with('Port %s was not found while '
++                                              'unbinding.', port_id)
+-- 
+2.15.0
+

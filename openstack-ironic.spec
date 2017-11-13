@@ -8,7 +8,7 @@ Name:           openstack-ironic
 Epoch:          1
 Summary:        OpenStack Baremetal Hypervisor API (ironic)
 Version:        7.0.3
-Release:        1%{?dist}
+Release:        1.1%{?dist}
 License:        ASL 2.0
 URL:            http://www.openstack.org
 Source0:        https://tarballs.openstack.org/ironic/ironic-%{version}.tar.gz
@@ -18,6 +18,9 @@ Source2:        openstack-ironic-conductor.service
 Source3:        ironic-rootwrap-sudoers
 Source4:        ironic-dist.conf
 Source5:        ironic.logrotate
+
+Patch0001:      0001-Skip-PortNotFound-when-unbinding-port.patch
+Patch0002:      0002-Fix-keystone.py-get_service_url-method-parameter.patch
 
 BuildArch:      noarch
 BuildRequires:  openstack-macros
@@ -88,6 +91,9 @@ BuildRequires:  pytz
 %prep
 %setup -q -n ironic-%{upstream_version}
 rm requirements.txt test-requirements.txt
+
+%patch0001 -p1
+%patch0002 -p1
 
 %build
 %{__python2} setup.py build
@@ -292,6 +298,9 @@ This package contains the Ironic test files.
 %{python2_sitelib}/%{service}_tests.egg-info
 
 %changelog
+* Mon Nov 13 2017 Pierre Riteau <priteau@uchicago.edu> 1:7.0.3-1.1
+- Add Chameleon patches
+
 * Mon Sep 25 2017 rdo-trunk <javier.pena@redhat.com> 1:7.0.3-1
 - Update to 7.0.3
 
